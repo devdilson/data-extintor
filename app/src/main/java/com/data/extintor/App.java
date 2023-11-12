@@ -9,71 +9,71 @@ import org.slf4j.LoggerFactory;
 
 public class App {
 
-	private static final Logger rootLogger = LoggerFactory.getLogger(App.class);
+  private static final Logger rootLogger = LoggerFactory.getLogger(App.class);
 
-	public static void main(String[] args) {
-		App app = new App();
-		app.runApp(args);
-	}
+  public static void main(String[] args) {
+    App app = new App();
+    app.runApp(args);
+  }
 
+  public void runApp(String[] args) {
+    rootLogger.info(":: Data Extintor 1.0.0 :: Starting application");
+    rootLogger.info("arguments expected: --file properties.yaml");
 
-	public void runApp(String[] args) {
-		rootLogger.info(":: Data Extintor 1.0.0 :: Starting application");
-		rootLogger.info("arguments expected: --file properties.yaml");
+    if (args.length < 1) {
+      throw new IllegalArgumentException("Expecting argument --file");
+    }
+    String file = extractFileParam(args[0]);
 
-		if (args.length < 1) {
-			throw new IllegalArgumentException("Expecting argument --file");
-		}
-		String file = extractFileParam(args[0]);
+    ConfigurationLoader<ExtintorConfig> loader = new YamlConfigurationLoader();
 
-		ConfigurationLoader<ExtintorConfig> loader = new YamlConfigurationLoader();
+    ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
+    loader.loadLogSettings(extintorConfig, file);
 
-		ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
-		loader.loadLogSettings(extintorConfig, file);
+    createPurgeThreads(
+        extintorConfig, new DefaultConnectionFactory(extintorConfig.getConnectionConfig()));
+  }
 
-		createPurgeThreads(extintorConfig, new DefaultConnectionFactory(extintorConfig.getConnectionConfig()));
-	}
+  private static void createPurgeThreads(
+      ExtintorConfig extintorConfig, DefaultConnectionFactory factory) {
+    int threadSize = extintorConfig.getPurgeThreadsList().size();
+    if (threadSize < 1) {
+      threwInvalidThreadConfiguration();
+    }
+    rootLogger.info("Starting {} threads to purge tables.", threadSize);
 
-	private static void createPurgeThreads(ExtintorConfig extintorConfig, DefaultConnectionFactory factory) {
-		int threadSize = extintorConfig.getPurgeThreadsList().size();
-		if (threadSize < 1) {
-			threwInvalidThreadConfiguration();
-		}
-		rootLogger.info("Starting {} threads to purge tables.", threadSize);
+    StatisticsManager statisticsManager = new StatisticsManager();
 
-		StatisticsManager statisticsManager = new StatisticsManager();
+    for (int i = 0; i < threadSize; i++) {
+      ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
+      PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
+      thread.setTryRun(extintorConfig.isDryRun());
+      thread.start();
+      thread.joinCurrentThread();
+    }
+    statisticsManager.shutdown();
+    statisticsManager.logStatistics();
+  }
 
-		for (int i = 0; i < threadSize; i++) {
-			ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
-			PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
-			thread.setTryRun(extintorConfig.isDryRun());
-			thread.start();
-			thread.joinCurrentThread();
-		}
-		statisticsManager.shutdown();
-		statisticsManager.logStatistics();
-	}
+  private static void threwInvalidThreadConfiguration() {
+    throw new IllegalArgumentException(
+        "Configuration error: At least one thread configuration is required. "
+            + "Define a thread in your YAML configuration like this:\n"
+            + "threads:\n"
+            + "  - tableName: [your_table_name]\n"
+            + "    whereFilter: [your_where_filter]\n"
+            + "    limit: [your_limit_number]\n"
+            + "Replace [your_table_name], [your_where_filter], and [your_limit_number] with your specific values.");
+  }
 
-	private static void threwInvalidThreadConfiguration() {
-		throw new IllegalArgumentException(
-				"Configuration error: At least one thread configuration is required. "
-						+ "Define a thread in your YAML configuration like this:\n"
-						+ "threads:\n"
-						+ "  - tableName: [your_table_name]\n"
-						+ "    whereFilter: [your_where_filter]\n"
-						+ "    limit: [your_limit_number]\n"
-						+ "Replace [your_table_name], [your_where_filter], and [your_limit_number] with your specific values.");
-	}
-
-	private static String extractFileParam(String arg) {
-		if (!arg.startsWith("--file=")) {
-			throw new IllegalArgumentException("Invalid argument. Expected format: --file=[value]");
-		}
-		String[] parts = arg.split("=", 2);
-		if (parts.length < 2) {
-			throw new IllegalArgumentException("Invalid format for --file argument. No value specified.");
-		}
-		return parts[1];
-	}
-
+  private static String extractFileParam(String arg) {
+    if (!arg.startsWith("--file=")) {
+      throw new IllegalArgumentException("Invalid argument. Expected format: --file=[value]");
+    }
+    String[] parts = arg.split("=", 2);
+    if (parts.length < 2) {
+      throw new IllegalArgumentException("Invalid format for --file argument. No value specified.");
+    }
+    return parts[1];
+  }
 }

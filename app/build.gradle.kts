@@ -1,6 +1,7 @@
 plugins {
     application
-    java
+    java;
+    id("com.diffplug.spotless") version "6.22.0" apply true
 }
 
 repositories {
@@ -32,6 +33,12 @@ dependencies {
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+    java {
+        googleJavaFormat()
     }
 }
 
