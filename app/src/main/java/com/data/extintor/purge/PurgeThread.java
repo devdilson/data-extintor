@@ -28,7 +28,7 @@ public class PurgeThread extends Thread {
     this.setName(config.getName());
   }
 
-  public void setTryRun(boolean isDryRun) {
+  public void setDryRun(boolean isDryRun) {
     this.isDryRun = isDryRun;
   }
 

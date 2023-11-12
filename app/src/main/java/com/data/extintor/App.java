@@ -47,7 +47,7 @@ public class App {
     for (int i = 0; i < threadSize; i++) {
       ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
       PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
-      thread.setTryRun(extintorConfig.isDryRun());
+      thread.setDryRun(extintorConfig.isDryRun());
       thread.start();
       thread.joinCurrentThread();
     }
