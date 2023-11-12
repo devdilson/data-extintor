@@ -1,62 +1,77 @@
-# Data Extintor Readme
+### Implementation of the Provided Readme
 
-## Overview
-Data Extintor is a Java application designed for data management and cleanup tasks in databases. It purges data based on configurations provided in a YAML file and supports a dry-run mode for testing without affecting data.
-
-## Requirements
-- Java Development Kit (JDK)
-- Gradle (for building the project)
-
-## Installation and Building
-1. **Java Installation**: Ensure Java is installed on your system. Download it from the [Java website](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html).
-2. **Clone the Repository**: Clone the Data Extintor repository to your local machine.
-3. **Build the Application**: Navigate to the project root directory and run the following command to build the application using Gradle:
-   ```shell
-   gradle build
-   ```
-   This will generate the executable JAR file in the `./app/build/libs/` directory.
-
-## Configuration
-Create a YAML configuration file (`application.yaml`) defining the database connection settings and tables to purge.
-
-### Sample Configuration Structure
-```yaml
-connectionConfig:
-  host: [database_host]
-  port: [database_port]
-  user: [database_user]
-  password: [database_password]
-purgeThreadsList:
-  - tableName: [your_table_name]
-    whereFilter: [your_where_filter]
-    limit: [your_limit_number]
-logSettingsPath: [path_to_log_settings_file]
-```
-Replace placeholders with your specific values.
-
-## Running the Application
-
-### Standard Mode
-Run Data Extintor using:
-```shell
-java -jar ./app/build/libs/app.jar --file=application.yaml
-```
-
-### Dry-Run Mode
-For a dry run (no data deletion):
-```shell
-java -jar ./app/build/libs/app.jar --file=application.yaml --dry-run
-```
-
-## Logging
-The application logs operations as configured in `logSettingsPath` in the YAML file. Ensure the log settings file is correctly prepared for detailed logging.
-
-## Troubleshooting
-Refer to application logs for issues related to configuration or database connections.
-
-## Contribution
-To contribute or report issues, please visit our [GitHub repository](#).
+The provided code describes a Gradle-based Java application, "Data Extintor," designed for database data management and cleanup. Below is an outline of the Readme content based on the given code:
 
 ---
 
-*Note: Always back up your database before running cleanup operations, especially in production environments.*
+# Data Extintor
+
+Data Extintor is a Java-based application for efficiently managing and purging data from databases. It operates based on configurations specified in YAML files, allowing for flexible and controlled data cleanup processes.
+
+## Features
+- Database connection setup via a YAML configuration file.
+- Multi-threaded data purging operations.
+- Dry-run mode for testing without modifying actual data.
+- Detailed logging using SLF4J and Logback.
+
+## Prerequisites
+- Java JDK 17 or higher.
+- Gradle for building the application.
+- MySQL Database (as implied by the MySQL JDBC driver).
+
+## Installation and Setup
+1. **Clone the Repository**: Download the source code to your local environment.
+2. **Gradle Build**: Navigate to the project directory and execute `gradle build` to compile the project and generate an executable JAR.
+
+## Configuration
+Create a YAML file (`application.yaml`) with the following structure:
+- Database connection details (host, port, database name, user credentials).
+- Thread configurations for purging (table name, conditional filters, limits).
+- Log settings file path.
+- Dry-run flag.
+
+Example:
+```yaml
+connection:
+  host: "localhost"
+  port: 3306
+  database: "your_db"
+  username: "user"
+  password: "pass"
+purgeThreads:
+  - tableName: "your_table"
+    name: "Thread-Name"
+    whereFilter: "your_conditions"
+    limit: 1000
+log-settings-path: "logback.xml"
+dry-run: false
+```
+
+## Execution
+Run the application using:
+```bash
+java -jar build/libs/data-extintor.jar --file=application.yaml
+```
+For dry-run mode, set `dry-run: true` in the configuration file.
+
+## Docker Setup
+The code includes a Docker configuration for setting up a MySQL database. Use Docker Compose to start a MySQL instance:
+```yaml
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    ...
+```
+
+## Logging
+Configure logging details in `logback.xml` as referenced in the YAML configuration file.
+
+## Caution
+Always backup your database before performing purge operations, especially in production environments.
+
+## Contributing
+Contributions, feedback, and issue reporting are welcomed. Please refer to the project's GitHub repository.
+
+---
+

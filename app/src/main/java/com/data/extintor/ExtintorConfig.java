@@ -10,6 +10,9 @@ public class ExtintorConfig {
 	@JsonProperty("log-settings-path")
 	private String logSettingsPath = "logback.xml";
 
+	@JsonProperty("dry-run")
+	private Boolean isDryRun;
+
 	@JsonProperty("connection")
 	@NotNull(message = "node required")
 	private ConnectionConfig connectionConfig;
@@ -23,6 +26,14 @@ public class ExtintorConfig {
 
 	public void setLogSettingsPath(String logSettingsPath) {
 		this.logSettingsPath = logSettingsPath;
+	}
+
+	public Boolean isDryRun() {
+		return isDryRun;
+	}
+
+	public void setIsDryRun(Boolean isDryRun) {
+		this.isDryRun = isDryRun;
 	}
 
 	public ConnectionConfig getConnectionConfig() {

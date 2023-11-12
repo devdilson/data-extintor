@@ -37,8 +37,6 @@ public class App {
 		}
 		String file = extractFileParam(args[0]);
 
-		boolean isDryRun = args.length > 1 && extractDryRun(args[1]);
-
 		ExtintorConfig extintorConfig = loadConfigurationFile(file);
 		loadLogSettings(extintorConfig, file);
 
@@ -55,7 +53,7 @@ public class App {
 		for (int i = 0; i < threadSize; i++) {
 			ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
 			PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
-			thread.setTryRun(isDryRun);
+			thread.setTryRun(extintorConfig.isDryRun());
 			thread.start();
 			joinCurrentThread(thread);
 		}
@@ -78,8 +76,7 @@ public class App {
 				errors.append("Validation errors found: \n");
 
 				for (ConstraintViolation<ExtintorConfig> violation : constraintViolations) {
-					errors
-							.append("Property '")
+					errors.append("Property '")
 							.append(violation.getPropertyPath())
 							.append("' ")
 							.append(violation.getMessage())
@@ -130,13 +127,6 @@ public class App {
 			throw new IllegalArgumentException("Invalid format for --file argument. No value specified.");
 		}
 		return parts[1];
-	}
-
-	private static boolean extractDryRun(String arg) {
-		if (arg.startsWith("--dry-run")) {
-			return true;
-		}
-		return false;
 	}
 
 	private void loadLogSettings(ExtintorConfig config, String file) {

@@ -1,4 +1,5 @@
 log-settings-path: logback.xml
+dry-run: false
 connection:
   host: "localhost"
   port: 3306
