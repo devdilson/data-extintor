@@ -56,6 +56,10 @@ tasks.named("build") {
     finalizedBy("fatJar")
 }
 
+tasks.named<JavaExec>("run") {
+    args = listOf("--file=../application.yaml")
+}
+
 application {
     mainClass.set("com.data.extintor.App")
 }
