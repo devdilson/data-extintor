@@ -13,10 +13,15 @@ public class PurgeThread extends Thread {
 
   private final ThreadConfig config;
   private final ConnectionFactory connectionFactory;
+  private final StatisticsManager statisticsManager;
 
-  public PurgeThread(ThreadConfig config, ConnectionFactory connectionFactory) {
+  public PurgeThread(
+      ThreadConfig config,
+      ConnectionFactory connectionFactory,
+      StatisticsManager statisticsManager) {
     this.config = config;
     this.connectionFactory = connectionFactory;
+    this.statisticsManager = statisticsManager;
   }
 
   @Override
@@ -24,12 +29,12 @@ public class PurgeThread extends Thread {
     try (Connection con = connectionFactory.getConnection()) {
       String deleteQuery =
           String.format(
-              "DELETE FROM %s %s %s",
+              "DELETE FROM %s %s LIMIT %s",
               config.getTableName(), config.getWhereFilter(), config.getLimit());
       log.info("Delete Query: {}", deleteQuery);
       String selectQuery =
           String.format(
-              "SELECT * FROM %s %s %s",
+              "SELECT * FROM %s %s LIMIT %s",
               config.getTableName(), config.getWhereFilter(), config.getLimit());
       log.info("Select Query: {}", selectQuery);
 
@@ -43,6 +48,7 @@ public class PurgeThread extends Thread {
         }
         try (PreparedStatement deleteStmt = con.prepareStatement(deleteQuery)) {
           int deletedRows = deleteStmt.executeUpdate();
+          statisticsManager.incrementAffectRecords(deletedRows);
           log.info("Deleted {} rows.", deletedRows);
         }
       }

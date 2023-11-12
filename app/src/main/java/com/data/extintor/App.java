@@ -35,10 +35,20 @@ public class App {
       threwInvalidThreadConfiguration();
     }
     log.info("Starting {} threads to purge tables.", threadSize);
+
+    StatisticsManager statisticsManager = new StatisticsManager();
+
     for (int i = 0; i < threadSize; i++) {
-      PurgeThread thread = new PurgeThread(extintorConfig.getPurgeThreadsList().get(0), factory);
+      PurgeThread thread =
+          new PurgeThread(extintorConfig.getPurgeThreadsList().get(0), factory, statisticsManager);
+      try {
+        thread.join();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
       thread.start();
     }
+    statisticsManager.logStatistics();
   }
 
   private static void threwInvalidThreadConfiguration() {
