@@ -12,6 +12,8 @@ public class PurgeThread extends Thread {
   private final ConnectionFactory connectionFactory;
   private final StatisticsManager statisticsManager;
 
+  private boolean isDryRun;
+
   public PurgeThread(
       ThreadConfig config,
       ConnectionFactory connectionFactory,
@@ -27,6 +29,10 @@ public class PurgeThread extends Thread {
     try (var con = connectionFactory.getConnection()) {
       String deleteQuery = createDeleteQuery();
       String selectQuery = createSelectQuery();
+      if (isDryRun) {
+        log.info("Ran in dry-run mode.");
+        return;
+      }
       con.setAutoCommit(false);
       boolean hasMoreRecords = false;
       do {
@@ -68,5 +74,9 @@ public class PurgeThread extends Thread {
             config.getTableName(), config.getWhereFilter(), config.getLimit());
     log.info("Delete Query: {}", deleteQuery);
     return deleteQuery;
+  }
+
+  public void setTryRun(boolean isDryRun) {
+    this.isDryRun = isDryRun;
   }
 }

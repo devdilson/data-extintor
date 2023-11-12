@@ -6,7 +6,6 @@ import java.sql.SQLException;
 
 public class ConnectionFactory {
 
-  private static ConnectionFactory connectionFactory;
   private final ConnectionConfig template;
 
   public ConnectionFactory(ConnectionConfig template) {
@@ -27,12 +26,5 @@ public class ConnectionFactory {
     } catch (ClassNotFoundException | SQLException e) {
       throw new RuntimeException("Error obtaining database connection", e);
     }
-  }
-
-  public static ConnectionFactory getInstance(ConnectionConfig template) {
-    if (connectionFactory == null) {
-      connectionFactory = new ConnectionFactory(template);
-    }
-    return connectionFactory;
   }
 }

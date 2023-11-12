@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class ExtintorConfig {
+
   @JsonProperty("connection")
   @NotNull(message = "node required")
   private ConnectionConfig connectionConfig;
