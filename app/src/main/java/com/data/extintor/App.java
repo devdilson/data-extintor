@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.util.ContextInitializer;
+import ch.qos.logback.core.joran.spi.JoranException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import jakarta.validation.ConstraintViolation;
@@ -17,11 +20,84 @@ import static ch.qos.logback.classic.ClassicConstants.CONFIG_FILE_PROPERTY;
 
 public class App {
 
-	private Logger rootLogger;
+	private static final Logger rootLogger = LoggerFactory.getLogger(App.class);
 
 	public static void main(String[] args) {
 		App app = new App();
 		app.runApp(args);
+	}
+
+
+	public void runApp(String[] args) {
+		rootLogger.info(":: Data Extintor 1.0.0 :: Starting application");
+		rootLogger.info("arguments expected: --file properties.yaml");
+
+		if (args.length < 1) {
+			throw new IllegalArgumentException("Expecting argument --file");
+		}
+		String file = extractFileParam(args[0]);
+
+		boolean isDryRun = args.length > 1 && extractDryRun(args[1]);
+
+		ExtintorConfig extintorConfig = loadConfigurationFile(file);
+		loadLogSettings(extintorConfig, file);
+
+		ConnectionFactory factory = new ConnectionFactory(extintorConfig.getConnectionConfig());
+
+		int threadSize = extintorConfig.getPurgeThreadsList().size();
+		if (threadSize < 1) {
+			threwInvalidThreadConfiguration();
+		}
+		rootLogger.info("Starting {} threads to purge tables.", threadSize);
+
+		StatisticsManager statisticsManager = new StatisticsManager();
+
+		for (int i = 0; i < threadSize; i++) {
+			ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
+			PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
+			thread.setTryRun(isDryRun);
+			thread.start();
+			joinCurrentThread(thread);
+		}
+		statisticsManager.shutdown();
+		statisticsManager.logStatistics();
+	}
+
+	private ExtintorConfig loadConfigurationFile(String file) {
+		rootLogger.info(String.format("Loading file %s", file));
+		ObjectMapper objectMapper = new YAMLMapper();
+		try {
+			ExtintorConfig extintorConfig = objectMapper.readValue(new File(file), ExtintorConfig.class);
+			ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+			Validator validator = factory.getValidator();
+			Set<ConstraintViolation<ExtintorConfig>> constraintViolations =
+					validator.validate(extintorConfig);
+
+			if (!constraintViolations.isEmpty()) {
+				StringBuilder errors = new StringBuilder();
+				errors.append("Validation errors found: \n");
+
+				for (ConstraintViolation<ExtintorConfig> violation : constraintViolations) {
+					errors
+							.append("Property '")
+							.append(violation.getPropertyPath())
+							.append("' ")
+							.append(violation.getMessage())
+							.append("; ")
+							.append("\n");
+				}
+
+				rootLogger.info("Validation errors {}", errors);
+			}
+
+			return extintorConfig;
+		}
+		catch (IOException e) {
+			String message = "Could not read the file: " + file;
+			rootLogger.info(message);
+			e.printStackTrace();
+			throw new RuntimeException(message);
+		}
 	}
 
 	private static void joinCurrentThread(PurgeThread thread) {
@@ -63,85 +139,26 @@ public class App {
 		return false;
 	}
 
-	public void runApp(String[] args) {
-		System.out.println(":: Data Extintor 1.0.0 :: Starting application");
-		System.out.println("arguments expected: --file properties.yaml");
-
-		if (args.length < 1) {
-			throw new IllegalArgumentException("Expecting argument --file");
-		}
-		String file = extractFileParam(args[0]);
-
-		loadLogSettings(file);
-
-		boolean isDryRun = args.length > 1 && extractDryRun(args[1]);
-
-		ExtintorConfig extintorConfig = loadConfigurationFile(file);
-
-		ConnectionFactory factory = new ConnectionFactory(extintorConfig.getConnectionConfig());
-
-		int threadSize = extintorConfig.getPurgeThreadsList().size();
-		if (threadSize < 1) {
-			threwInvalidThreadConfiguration();
-		}
-		rootLogger.info("Starting {} threads to purge tables.", threadSize);
-
-		StatisticsManager statisticsManager = new StatisticsManager();
-
-		for (int i = 0; i < threadSize; i++) {
-			ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
-			PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
-			thread.setTryRun(isDryRun);
-			thread.start();
-			joinCurrentThread(thread);
-		}
-		statisticsManager.shutdown();
-		statisticsManager.logStatistics();
-	}
-
-	private void loadLogSettings(String file) {
-		File configFolder = new File(file).getParentFile();
-		File settingsFile = new File(configFolder, "logback.xml");
+	private void loadLogSettings(ExtintorConfig config, String file) {
+		File configFolder = new File(file).getAbsoluteFile().getParentFile();
+		File settingsFile = new File(configFolder, config.getLogSettingsPath());
 		if (!settingsFile.exists()) {
 			throw new IllegalArgumentException("Could not load log settings: " + settingsFile);
 		}
-		System.setProperty(CONFIG_FILE_PROPERTY, settingsFile.toURI().getPath());
-		rootLogger = LoggerFactory.getLogger(App.class);
+		reloadVendorLogSettings(settingsFile);
 	}
 
-	private ExtintorConfig loadConfigurationFile(String file) {
-		rootLogger.info("Loading file {}", file);
-		ObjectMapper objectMapper = new YAMLMapper();
+	private static void reloadVendorLogSettings(File settingsFile) {
+		System.setProperty(CONFIG_FILE_PROPERTY, settingsFile.getPath());
+		LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+		loggerContext.reset();
+		ContextInitializer ci = new ContextInitializer(loggerContext);
 		try {
-			ExtintorConfig extintorConfig = objectMapper.readValue(new File(file), ExtintorConfig.class);
-			ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-			Validator validator = factory.getValidator();
-			Set<ConstraintViolation<ExtintorConfig>> constraintViolations =
-					validator.validate(extintorConfig);
-
-			if (!constraintViolations.isEmpty()) {
-				StringBuilder errors = new StringBuilder();
-				errors.append("Validation errors found: \n");
-
-				for (ConstraintViolation<ExtintorConfig> violation : constraintViolations) {
-					errors
-							.append("Property '")
-							.append(violation.getPropertyPath())
-							.append("' ")
-							.append(violation.getMessage())
-							.append("; ")
-							.append("\n");
-				}
-
-				rootLogger.error(errors.toString());
-			}
-
-			return extintorConfig;
+			ci.autoConfig();
 		}
-		catch (IOException e) {
-			String message = "Could not read the file: " + file;
-			rootLogger.error(message, e);
-			throw new RuntimeException(message);
+		catch (JoranException e) {
+			throw new RuntimeException("Could not reload log", e);
 		}
 	}
+
 }

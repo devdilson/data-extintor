@@ -7,12 +7,23 @@ import jakarta.validation.constraints.NotNull;
 
 public class ExtintorConfig {
 
+	@JsonProperty("log-settings-path")
+	private String logSettingsPath = "logback.xml";
+
 	@JsonProperty("connection")
 	@NotNull(message = "node required")
 	private ConnectionConfig connectionConfig;
 
 	@JsonProperty("purgeThreads")
 	private List<ThreadConfig> purgeThreadsList;
+
+	public String getLogSettingsPath() {
+		return logSettingsPath;
+	}
+
+	public void setLogSettingsPath(String logSettingsPath) {
+		this.logSettingsPath = logSettingsPath;
+	}
 
 	public ConnectionConfig getConnectionConfig() {
 		return connectionConfig;
