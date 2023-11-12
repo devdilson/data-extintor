@@ -48,7 +48,7 @@ public class YamlConfigurationLoader implements ConfigurationLoader<ExtintorConf
 
         log.info("Validation errors {}", errors);
       }
-
+      loadLogSettings(extintorConfig, file);
       return extintorConfig;
     } catch (IOException e) {
       String message = "Could not read the file: " + file;
@@ -58,7 +58,7 @@ public class YamlConfigurationLoader implements ConfigurationLoader<ExtintorConf
     }
   }
 
-  public void loadLogSettings(ExtintorConfig config, String file) {
+  private void loadLogSettings(ExtintorConfig config, String file) {
     File configFolder = new File(file).getAbsoluteFile().getParentFile();
     File settingsFile = new File(configFolder, config.getLogSettingsPath());
     if (!settingsFile.exists()) {

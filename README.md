@@ -44,7 +44,7 @@ dry-run: false
 ## Execution
 Run the application using:
 ```bash
-java -jar build/libs/data-extintor.jar --file=application.yaml
+java -jar app/build/libs/app.jar --file=application.yaml
 ```
 For dry-run mode, set `dry-run: true` in the configuration file.
 

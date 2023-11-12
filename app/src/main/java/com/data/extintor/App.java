@@ -28,7 +28,6 @@ public class App {
     ConfigurationLoader<ExtintorConfig> loader = new YamlConfigurationLoader();
 
     ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
-    loader.loadLogSettings(extintorConfig, file);
 
     createPurgeThreads(
         extintorConfig, new DefaultConnectionFactory(extintorConfig.getConnectionConfig()));
