@@ -25,7 +25,8 @@ public class App {
     }
     String file = extractFileParam(args[0]);
 
-    ConfigurationLoader<ExtintorConfig> loader = new DefaultConfigurationLoader();
+    ConfigurationLoader<ExtintorConfig> loader =
+        new DefaultConfigurationLoader(ExtintorConfig.class);
 
     ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
 

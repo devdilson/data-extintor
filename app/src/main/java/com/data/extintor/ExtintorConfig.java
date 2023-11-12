@@ -6,10 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-public class ExtintorConfig {
-
-  @JsonProperty("log-settings-path")
-  private String logSettingsPath = "logback.xml";
+public class ExtintorConfig extends BaseConfig {
 
   @JsonProperty("dry-run")
   private Boolean isDryRun;
@@ -20,14 +17,6 @@ public class ExtintorConfig {
 
   @JsonProperty("purgeThreads")
   private List<ThreadConfig> purgeThreadsList;
-
-  public String getLogSettingsPath() {
-    return logSettingsPath;
-  }
-
-  public void setLogSettingsPath(String logSettingsPath) {
-    this.logSettingsPath = logSettingsPath;
-  }
 
   public Boolean isDryRun() {
     return isDryRun;
