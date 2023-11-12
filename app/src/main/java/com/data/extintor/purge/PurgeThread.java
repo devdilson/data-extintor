@@ -45,10 +45,15 @@ public class PurgeThread extends Thread {
       }
       con.setAutoCommit(false);
       boolean hasMoreRecords = false;
+      int errorCount = 0;
       do {
         try (var selectStmt = con.prepareStatement(selectQuery);
             var deleteStmt = con.prepareStatement(deleteQuery);
             var rs = selectStmt.executeQuery()) {
+          if (errorCount > 3) {
+            log.error("Too many errors when running the queries, aborting thread");
+            return;
+          }
           rs.next();
           hasMoreRecords = rs.getInt(1) > 0;
           int deletedRows = deleteStmt.executeUpdate();
@@ -57,6 +62,7 @@ public class PurgeThread extends Thread {
           log.debug("Deleted {} rows.", deletedRows);
         } catch (SQLException ex) {
           log.error("Error running query", ex);
+          errorCount++;
           con.rollback();
         }
 
