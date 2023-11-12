@@ -35,7 +35,6 @@ java {
     }
 }
 
-
 tasks.register<Jar>("fatJar") {
 
     manifest {
@@ -49,8 +48,6 @@ tasks.register<Jar>("fatJar") {
 tasks.named("build") {
     finalizedBy("fatJar")
 }
-
-
 
 application {
     mainClass.set("com.data.extintor.App")
