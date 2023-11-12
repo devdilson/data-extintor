@@ -53,12 +53,11 @@ public class PurgeThread extends Thread {
           hasMoreRecords = rs.getInt(1) > 0;
           int deletedRows = deleteStmt.executeUpdate();
           statisticsManager.incrementAffectRecords(deletedRows);
+          con.commit();
           log.debug("Deleted {} rows.", deletedRows);
         } catch (SQLException ex) {
           log.error("Error running query", ex);
           con.rollback();
-        } finally {
-          con.commit();
         }
 
       } while (hasMoreRecords);
