@@ -1,0 +1,14 @@
+connection:
+  host: "localhost"
+  port: 3306
+  database: "db"
+  username: "user"
+  password: "user"
+  driverClass: "com.mysql.cj.jdbc.Driver"
+purgeThreads:
+  - tableName: test
+    whereFilter: WHERE x < 1000 AND x > 0
+    limit: 2000
+  - tableName: test
+    whereFilter: WHERE x > 1000 AND x < 10000
+    limit: 2000

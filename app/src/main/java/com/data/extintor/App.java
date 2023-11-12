@@ -3,12 +3,98 @@
  */
 package com.data.extintor;
 
-public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import java.io.File;
+import java.io.IOException;
+import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+public class App {
+
+  private static final Logger log = LoggerFactory.getLogger(App.class);
+
+  public static void main(String[] args) {
+    log.info(":: Data Extintor 1.0.0 :: Starting application");
+    log.info("arguments expected: --file properties.yaml");
+    if (args.length < 1) {
+      throw new IllegalArgumentException("Expecting argument --file");
     }
+    String file = extractFileParam(args[0]);
+
+    ExtintorConfig extintorConfig = loadConfigurationFile(file);
+    ConnectionFactory factory = new ConnectionFactory(extintorConfig.getConnectionConfig());
+
+    int threadSize = extintorConfig.getPurgeThreadsList().size();
+    if (threadSize < 1) {
+      threwInvalidThreadConfiguration();
+    }
+    log.info("Starting {} threads to purge tables.", threadSize);
+    for (int i = 0; i < threadSize; i++) {
+      PurgeThread thread = new PurgeThread(extintorConfig.getPurgeThreadsList().get(0), factory);
+      thread.start();
+    }
+  }
+
+  private static void threwInvalidThreadConfiguration() {
+    throw new IllegalArgumentException(
+        "Configuration error: At least one thread configuration is required. "
+            + "Define a thread in your YAML configuration like this:\n"
+            + "threads:\n"
+            + "  - tableName: [your_table_name]\n"
+            + "    whereFilter: [your_where_filter]\n"
+            + "    limit: [your_limit_number]\n"
+            + "Replace [your_table_name], [your_where_filter], and [your_limit_number] with your specific values.");
+  }
+
+  private static ExtintorConfig loadConfigurationFile(String file) {
+    log.info("Loading file {}", file);
+    ObjectMapper objectMapper = new YAMLMapper();
+    try {
+      ExtintorConfig extintorConfig = objectMapper.readValue(new File(file), ExtintorConfig.class);
+      ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+      Validator validator = factory.getValidator();
+      Set<ConstraintViolation<ExtintorConfig>> constraintViolations =
+          validator.validate(extintorConfig);
+
+      if (!constraintViolations.isEmpty()) {
+        StringBuilder errors = new StringBuilder();
+        errors.append("Validation errors found: \n");
+
+        for (ConstraintViolation<ExtintorConfig> violation : constraintViolations) {
+          errors
+              .append("Property '")
+              .append(violation.getPropertyPath())
+              .append("' ")
+              .append(violation.getMessage())
+              .append("; ")
+              .append("\n");
+        }
+
+        log.error(errors.toString());
+      }
+
+      return extintorConfig;
+    } catch (IOException e) {
+      String message = "Could not read the file: " + file;
+      log.error(message, e);
+      throw new RuntimeException(message);
+    }
+  }
+
+  private static String extractFileParam(String arg) {
+    if (!arg.startsWith("--file=")) {
+      throw new IllegalArgumentException("Invalid argument. Expected format: --file=[value]");
+    }
+    String[] parts = arg.split("=", 2);
+    if (parts.length < 2) {
+      throw new IllegalArgumentException("Invalid format for --file argument. No value specified.");
+    }
+    return parts[1];
+  }
 }
