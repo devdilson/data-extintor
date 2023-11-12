@@ -2,6 +2,8 @@ package com.data.extintor;
 
 import java.util.List;
 
+import com.data.extintor.database.ConnectionConfig;
+import com.data.extintor.purge.ThreadConfig;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
 

@@ -1,22 +1,11 @@
 package com.data.extintor;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Set;
-
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.util.ContextInitializer;
-import ch.qos.logback.core.joran.spi.JoranException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
+import com.data.extintor.database.DefaultConnectionFactory;
+import com.data.extintor.purge.PurgeThread;
+import com.data.extintor.purge.ThreadConfig;
+import com.data.extintor.statistics.StatisticsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static ch.qos.logback.classic.ClassicConstants.CONFIG_FILE_PROPERTY;
 
 public class App {
 
@@ -37,11 +26,15 @@ public class App {
 		}
 		String file = extractFileParam(args[0]);
 
-		ExtintorConfig extintorConfig = loadConfigurationFile(file);
-		loadLogSettings(extintorConfig, file);
+		ConfigurationLoader<ExtintorConfig> loader = new YamlConfigurationLoader();
 
-		ConnectionFactory factory = new ConnectionFactory(extintorConfig.getConnectionConfig());
+		ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
+		loader.loadLogSettings(extintorConfig, file);
 
+		createPurgeThreads(extintorConfig, new DefaultConnectionFactory(extintorConfig.getConnectionConfig()));
+	}
+
+	private static void createPurgeThreads(ExtintorConfig extintorConfig, DefaultConnectionFactory factory) {
 		int threadSize = extintorConfig.getPurgeThreadsList().size();
 		if (threadSize < 1) {
 			threwInvalidThreadConfiguration();
@@ -59,42 +52,6 @@ public class App {
 		}
 		statisticsManager.shutdown();
 		statisticsManager.logStatistics();
-	}
-
-	private ExtintorConfig loadConfigurationFile(String file) {
-		rootLogger.info(String.format("Loading file %s", file));
-		ObjectMapper objectMapper = new YAMLMapper();
-		try {
-			ExtintorConfig extintorConfig = objectMapper.readValue(new File(file), ExtintorConfig.class);
-			ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-			Validator validator = factory.getValidator();
-			Set<ConstraintViolation<ExtintorConfig>> constraintViolations =
-					validator.validate(extintorConfig);
-
-			if (!constraintViolations.isEmpty()) {
-				StringBuilder errors = new StringBuilder();
-				errors.append("Validation errors found: \n");
-
-				for (ConstraintViolation<ExtintorConfig> violation : constraintViolations) {
-					errors.append("Property '")
-							.append(violation.getPropertyPath())
-							.append("' ")
-							.append(violation.getMessage())
-							.append("; ")
-							.append("\n");
-				}
-
-				rootLogger.info("Validation errors {}", errors);
-			}
-
-			return extintorConfig;
-		}
-		catch (IOException e) {
-			String message = "Could not read the file: " + file;
-			rootLogger.info(message);
-			e.printStackTrace();
-			throw new RuntimeException(message);
-		}
 	}
 
 	private static void threwInvalidThreadConfiguration() {
@@ -117,28 +74,6 @@ public class App {
 			throw new IllegalArgumentException("Invalid format for --file argument. No value specified.");
 		}
 		return parts[1];
-	}
-
-	private void loadLogSettings(ExtintorConfig config, String file) {
-		File configFolder = new File(file).getAbsoluteFile().getParentFile();
-		File settingsFile = new File(configFolder, config.getLogSettingsPath());
-		if (!settingsFile.exists()) {
-			throw new IllegalArgumentException("Could not load log settings: " + settingsFile);
-		}
-		reloadVendorLogSettings(settingsFile);
-	}
-
-	private static void reloadVendorLogSettings(File settingsFile) {
-		System.setProperty(CONFIG_FILE_PROPERTY, settingsFile.getPath());
-		LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-		loggerContext.reset();
-		ContextInitializer ci = new ContextInitializer(loggerContext);
-		try {
-			ci.autoConfig();
-		}
-		catch (JoranException e) {
-			throw new RuntimeException("Could not reload log", e);
-		}
 	}
 
 }
