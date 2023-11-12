@@ -1,9 +1,3 @@
-### Implementation of the Provided Readme
-
-The provided code describes a Gradle-based Java application, "Data Extintor," designed for database data management and cleanup. Below is an outline of the Readme content based on the given code:
-
----
-
 # Data Extintor
 
 Data Extintor is a Java-based application for efficiently managing and purging data from databases. It operates based on configurations specified in YAML files, allowing for flexible and controlled data cleanup processes.

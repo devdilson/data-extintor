@@ -70,6 +70,16 @@ public class PurgeThread extends Thread {
 		}
 	}
 
+	public void joinCurrentThread() {
+		try {
+			join();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Thread interrupted", e);
+		}
+	}
+
 	private static String createSelectQuery(ThreadConfig config) {
 		return String.format(
 				"SELECT EXISTS(SELECT 1 FROM %s %s LIMIT %s)",

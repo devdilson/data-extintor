@@ -55,7 +55,7 @@ public class App {
 			PurgeThread thread = new PurgeThread(config, factory, statisticsManager);
 			thread.setTryRun(extintorConfig.isDryRun());
 			thread.start();
-			joinCurrentThread(thread);
+			thread.joinCurrentThread();
 		}
 		statisticsManager.shutdown();
 		statisticsManager.logStatistics();
@@ -94,16 +94,6 @@ public class App {
 			rootLogger.info(message);
 			e.printStackTrace();
 			throw new RuntimeException(message);
-		}
-	}
-
-	private static void joinCurrentThread(PurgeThread thread) {
-		try {
-			thread.join();
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new RuntimeException("Thread interrupted", e);
 		}
 	}
 
