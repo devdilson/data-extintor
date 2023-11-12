@@ -1,8 +1,5 @@
 package com.data.extintor;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,38 +19,54 @@ public class PurgeThread extends Thread {
     this.config = config;
     this.connectionFactory = connectionFactory;
     this.statisticsManager = statisticsManager;
+    this.setName(config.getName());
   }
 
   @Override
   public void run() {
-    try (Connection con = connectionFactory.getConnection()) {
-      String deleteQuery =
-          String.format(
-              "DELETE FROM %s %s LIMIT %s",
-              config.getTableName(), config.getWhereFilter(), config.getLimit());
-      log.info("Delete Query: {}", deleteQuery);
-      String selectQuery =
-          String.format(
-              "SELECT * FROM %s %s LIMIT %s",
-              config.getTableName(), config.getWhereFilter(), config.getLimit());
-      log.info("Select Query: {}", selectQuery);
-
-      while (true) {
-        try (PreparedStatement selectStmt = con.prepareStatement(selectQuery);
-            ResultSet rs = selectStmt.executeQuery()) {
-          if (!rs.next()) {
-            log.info("No more records to delete. Exiting.");
-            break;
-          }
-        }
-        try (PreparedStatement deleteStmt = con.prepareStatement(deleteQuery)) {
+    try (var con = connectionFactory.getConnection()) {
+      String deleteQuery = createDeleteQuery();
+      String selectQuery = createSelectQuery();
+      con.setAutoCommit(false);
+      boolean hasMoreRecords = false;
+      do {
+        try (var selectStmt = con.prepareStatement(selectQuery);
+            var deleteStmt = con.prepareStatement(deleteQuery);
+            var rs = selectStmt.executeQuery()) {
+          rs.next();
+          hasMoreRecords = rs.getInt(1) > 0;
           int deletedRows = deleteStmt.executeUpdate();
           statisticsManager.incrementAffectRecords(deletedRows);
-          log.info("Deleted {} rows.", deletedRows);
+          log.debug("Deleted {} rows.", deletedRows);
+        } catch (SQLException ex) {
+          log.error("Error running query", ex);
+          con.rollback();
+        } finally {
+          con.commit();
         }
-      }
+
+      } while (hasMoreRecords);
+
     } catch (SQLException e) {
       log.error("Could not execute query", e);
     }
+  }
+
+  private String createSelectQuery() {
+    String selectQuery =
+        String.format(
+            "SELECT EXISTS(SELECT 1 FROM %s %s LIMIT %s)",
+            config.getTableName(), config.getWhereFilter(), config.getLimit());
+    log.info("Select Query: {}", selectQuery);
+    return selectQuery;
+  }
+
+  private String createDeleteQuery() {
+    String deleteQuery =
+        String.format(
+            "DELETE FROM %s %s LIMIT %s",
+            config.getTableName(), config.getWhereFilter(), config.getLimit());
+    log.info("Delete Query: {}", deleteQuery);
+    return deleteQuery;
   }
 }

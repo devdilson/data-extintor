@@ -3,6 +3,10 @@ package com.data.extintor;
 import jakarta.validation.constraints.NotNull;
 
 public class ThreadConfig {
+
+  @NotNull(message = "required")
+  private String name;
+
   @NotNull(message = "required")
   private String whereFilter;
 
@@ -10,6 +14,14 @@ public class ThreadConfig {
   private String tableName;
 
   private Integer limit = 1000;
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
 
   public String getWhereFilter() {
     return whereFilter;

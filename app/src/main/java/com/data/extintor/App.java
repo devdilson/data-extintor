@@ -39,8 +39,8 @@ public class App {
     StatisticsManager statisticsManager = new StatisticsManager();
 
     for (int i = 0; i < threadSize; i++) {
-      PurgeThread thread =
-          new PurgeThread(extintorConfig.getPurgeThreadsList().get(0), factory, statisticsManager);
+      ThreadConfig config = extintorConfig.getPurgeThreadsList().get(i);
+      PurgeThread thread =  new PurgeThread(config, factory, statisticsManager);
       try {
         thread.join();
       } catch (InterruptedException e) {
@@ -48,7 +48,7 @@ public class App {
       }
       thread.start();
     }
-    statisticsManager.logStatistics();
+    statisticsManager.shutdown();
   }
 
   private static void threwInvalidThreadConfiguration() {
