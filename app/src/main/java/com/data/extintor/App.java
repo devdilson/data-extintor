@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class App {
 
-  private static final Logger rootLogger = LoggerFactory.getLogger(App.class);
+  private static final Logger log = LoggerFactory.getLogger(App.class);
 
   public static void main(String[] args) {
     App app = new App();
@@ -17,15 +17,15 @@ public class App {
   }
 
   public void runApp(String[] args) {
-    rootLogger.info(":: Data Extintor 1.0.0 :: Starting application");
-    rootLogger.info("arguments expected: --file properties.yaml");
+    log.info(":: Data Extintor 1.0.0 :: Starting application");
+    log.info("arguments expected: --file properties.yaml");
 
     if (args.length < 1) {
       throw new IllegalArgumentException("Expecting argument --file");
     }
     String file = extractFileParam(args[0]);
 
-    ConfigurationLoader<ExtintorConfig> loader = new YamlConfigurationLoader();
+    ConfigurationLoader<ExtintorConfig> loader = new DefaultConfigurationLoader();
 
     ExtintorConfig extintorConfig = loader.loadConfigurationFile(file);
 
@@ -39,7 +39,7 @@ public class App {
     if (threadSize < 1) {
       threwInvalidThreadConfiguration();
     }
-    rootLogger.info("Starting {} threads to purge tables.", threadSize);
+    log.info("Starting {} threads to purge tables.", threadSize);
 
     StatisticsManager statisticsManager = new StatisticsManager();
 
